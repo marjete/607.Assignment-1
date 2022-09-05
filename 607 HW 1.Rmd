@@ -1,0 +1,52 @@
+---
+title: "607 hw Attempt"
+author: "Marjete"
+date: "2022-09-04"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+#Intro For this assignment I used a poll data set from fivethirtyeight, 'Do You Know Where America Stands On Guns?' focused on the opinions of Gun Control, which they asked about access, age, training ect that should be required from various survey results. Support is rated per question and the data also shows a breakdown of opinions between democrats and republicans. 
+## in terms of better understanding the questions, I added one here for easier reference age-21= What share of Americans support raising the minimum purchase age to 21?; more can be found on the article https://projects.fivethirtyeight.com/guns-parkland-polling-quiz/
+
+
+
+```{r}
+library(ggplot2)
+library(stringr)
+```
+
+
+#1. Do You Know Where America Stands On Guns?
+###Data frame- reminder to click on raw data
+```{r}
+
+Guns.poll <- read.csv(file ="https://raw.githubusercontent.com/fivethirtyeight/data/master/poll-quiz-guns/guns-polls.csv", header = TRUE,  stringsAsFactors = FALSE) 
+head(Guns.poll)
+str(Guns.poll)
+```
+##New Data Frame
+```{r}
+new.guns <- Guns.poll[, c("Question","Pollster","Population","Republican.Support","Democratic.Support")]
+```
+#I remove the general support column because I would like to compare the party's opinions and the URL since 'pollster' has similar info. 
+
+##Rename Columns
+```{r}
+names(new.guns)[names(new.guns) == 'Pollster'] <- 'source'
+names(new.guns)[names(new.guns) == 'Population'] <- 'sample'
+```
+#I renamed population to sample - the categories are Adults and Registered voters (there is likely a better term of this grouping), and the term Pollster seemed confusing so I switched it to 'source'
+
+
+#Conclusions
+##I would like to compare the responses based on parties. I think it would be interesting to find where some opinions generally align and attempt to modify those policies first, such as raising the minumum age to 21, which generally has a lot of support. I also wonder how the sample of 'adults' vary in opinons compared to 'registered voters' and how law makers can potentially leverage this information. I would be very interested in a more detailed breakdown of regarding the question 'What share of Americans support arming teachers?' specifically the respondants carreers, and I would love to see parents vs folks with no children and how their opinions on this question would vary. Also shoudlnt folks with children in schools have more weight in the decision?- Thanks for reading!
+```{r}
+Guns.poll <- read.csv('https://raw.githubusercontent.com/marjete/.....)
+head(Guns.poll)
+```
+
+
+
+
