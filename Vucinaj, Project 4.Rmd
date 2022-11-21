@@ -1,0 +1,229 @@
+---
+title: "Untitled"
+author: "Marjete Vucinaj"
+date: "2022-11-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+## load Libraries
+```{r }
+library(knitr) 
+library(wordcloud)
+library(tidyverse)
+library(tm) # Text mining package
+library(SnowballC) # Word stemming package
+library(RTextTools)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(DT)
+library(caret)
+library(tidytext)
+library(RTextTools)
+library(naivebayes) #didnt end up using all
+```
+## load data
+```{r}
+# set working directory 
+setwd("../project4") 
+
+# create list of file names for reference
+spam.files <- list.files("spam")
+ham.files <- list.files("easy_ham_2")
+
+#remove cmds files
+spam.files <- spam.files[which(spam.files!="cmds")]
+ham.files <- ham.files[which(ham.files!="cmds")]
+```
+
+```{r}
+length(spam.files)
+```
+
+```{r}
+length(ham.files)  #total 1901
+```
+The ham.files contains 1400 emails (73.6% of total) and the spam.files contains 501 emails (26.3% of total) for a total of 1901 emails that I'll be processing.
+
+```{r}
+spam_corpus <- "spam" %>%
+  paste(., list.files(.), sep = "/") %>%
+  lapply(readLines) %>%
+  VectorSource() %>%
+  VCorpus()
+
+spam_corpus
+
+```
+```{r}
+ham_corpus <- "easy_ham_2" %>%
+  paste(., list.files(.), sep = "/") %>%
+  lapply(readLines) %>%
+  VectorSource() %>%
+  VCorpus()
+
+ham_corpus
+```
+## cleaning corpus
+```{r}
+ham_corpus <- ham_corpus %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeWords, stopwords()) %>%
+  tm_map(stripWhitespace) %>% #remove blank space
+  tm_map(stemDocument) #terms to their stem
+
+
+ham_corpus
+```
+
+```{r}
+spam_corpus <- ham_corpus %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeWords, stopwords()) %>%
+  tm_map(stripWhitespace) %>% #remove blank space
+  tm_map(stemDocument) #terms to their stem
+
+spam_corpus
+```
+
+
+```{r}
+dtm <- DocumentTermMatrix(ham_spam_corpus)
+dtm
+```
+
+```{r}
+dtm <- removeSparseTerms(dtm, .75)
+dtm
+```
+
+
+```{r}
+wordcloud(ham_spam_corpus, max.words = 100, random.order = FALSE, rot.per=0.15, min.freq=5, colors = brewer.pal(8, "Dark2"))
+
+```
+## Data Prep
+```{r}
+df_ham <- as.data.frame(unlist(ham_corpus), stringsAsFactors = FALSE)
+df_ham$type <- "ham"
+colnames(df_ham)=c("text", "email")
+
+df_spam <- as.data.frame(unlist(spam_corpus), stringsAsFactors = FALSE)
+df_spam$type <- "spam"
+colnames(df_spam)=c("text", "email")
+
+df_ham_spam <- rbind(df_ham, df_spam)
+
+head(df_ham_spam)
+
+```
+```{r}
+hamspam_tokens = df_ham_spam %>%
+  unnest_tokens(word,text) %>%
+  filter(!str_detect(word, "^[0-9]*$")) %>%
+  anti_join(stop_words) 
+#mutate(word = wordStem(word)); Error in mutate(., word = wordStem(word)) : Caused by error in `.Call()`:! "S_getMaxWordLength" not available for .Call() for package "RTextTools"
+```
+
+### Split data for test and training
+```{r}
+sample_size <- floor(0.75 * nrow(df_ham_spam)) # selecting sample size of 75% of the data for training. 
+
+set.seed(19)
+train <- sample(seq_len(nrow(df_ham_spam)), size = sample_size)
+
+train_ham_spam <- df_ham_spam[train, ]
+test_ham_spam <- df_ham_spam[-train, ]
+
+head(test_ham_spam)
+
+```
+
+```{r}
+# corpus creation
+train_corpus <- Corpus (VectorSource(train_ham_spam$text)) # corpus training data
+test_corpus <- Corpus(VectorSource(test_ham_spam$text)) # corpus test data
+
+# corpus cleaning
+train_corpus <- train_corpus %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeWords, stopwords()) %>%
+  tm_map(stripWhitespace)
+
+test_corpus <- test_corpus %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeWords, stopwords()) %>%
+  tm_map(stripWhitespace)
+```
+```{r}
+train_corpus
+
+```
+```{r}
+test_corpus
+```
+
+
+```{r}
+train_tdm <- DocumentTermMatrix(train_corpus)
+test_tdm <- DocumentTermMatrix(test_corpus)
+train_tdm
+```
+
+```{r}
+test_tdm
+```
+
+
+```{r}
+spam <- subset(train_ham_spam, email == "spam")
+ham <- subset(train_ham_spam, email == "ham")
+```
+
+
+```{r}
+fifty_times_words<- findFreqTerms(train_tdm, 50)
+length(fifty_times_words)
+```
+
+```{r}
+train_tdm_2<- DocumentTermMatrix(train_corpus, control=list(dictionary = fifty_times_words))
+
+test_tdm_2<- DocumentTermMatrix(test_corpus, control=list(dictionary = fifty_times_words))
+```
+
+```{r}
+train_tdm_3 <- as.matrix(train_tdm_2)
+train_tdm_3 <- as.data.frame(train_tdm_3)
+class(train_tdm_3)
+```
+
+```{r}
+test_tdm_3 <- as.matrix(test_tdm_2)
+test_tdm_3 <- as.data.frame(test_tdm_3)
+class(test_tdm_3)
+```
+
+
+```{r}
+#I tried to use NaiveBayes Model but continued to get an error even though it was installed and loaded library, could not find function "naivebayes"
+
+```
+
+
+
+
+
+
+
